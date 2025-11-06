@@ -108,18 +108,28 @@ const getRepeatTypeLabel = (type: RepeatType): string => {
   }
 };
 
-interface DroppagbleProps {
+interface DroppableProps {
   id: string;
   children: React.ReactNode;
   sx?: any;
 }
 
-const Droppagble: React.FC<DroppagbleProps> = ({ id, children, sx }) => {
-  const { setNodeRef } = useDroppable({
+const Droppable: React.FC<DroppableProps> = ({ id, children, sx }) => {
+  const { setNodeRef, isOver } = useDroppable({
     id: id,
   });
+
   return (
-    <TableCell ref={setNodeRef} sx={sx}>
+    <TableCell
+      ref={setNodeRef}
+      sx={{
+        ...sx,
+        // 드롭 영역에 드래그 중인 아이템이 올라왔을 때
+        backgroundColor: isOver ? '#e3f2fd' : sx?.backgroundColor || 'inherit',
+        transition: 'background-color 0.2s ease',
+        border: isOver ? '2px dashed #1976d2' : sx?.border || '1px solid #e0e0e0',
+      }}
+    >
       {children}
     </TableCell>
   );
@@ -132,12 +142,28 @@ interface DraggableProps {
 }
 
 const Draggable: React.FC<DraggableProps> = ({ id, children, sx }) => {
-  const { attributes, listeners, setNodeRef } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: id,
   });
 
   return (
-    <Box ref={setNodeRef} sx={sx} {...listeners} {...attributes}>
+    <Box
+      ref={setNodeRef}
+      sx={{
+        ...sx,
+        // 드래그 중일 때
+        opacity: isDragging ? 0.5 : 1,
+        cursor: isDragging ? 'grabbing' : 'grab',
+        transform: isDragging ? 'scale(1.05)' : 'scale(1)',
+        transition: 'opacity 0.2s ease, transform 0.2s ease',
+        // 호버 효과
+        '&:hover': {
+          boxShadow: !isDragging ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+        },
+      }}
+      {...listeners}
+      {...attributes}
+    >
       {children}
     </Box>
   );
@@ -178,7 +204,6 @@ function App() {
   } = useEventForm();
 
   const { events, saveEvent, deleteEvent, createRepeatEvent, fetchEvents } = useEventOperations(
-    Boolean(editingEvent),
     () => setEditingEvent(null)
   );
 
@@ -200,7 +225,13 @@ function App() {
   const [pendingRecurringEdit, setPendingRecurringEdit] = useState<Event | null>(null);
   const [pendingRecurringDelete, setPendingRecurringDelete] = useState<Event | null>(null);
   const [recurringEditMode, setRecurringEditMode] = useState<boolean | null>(null); // true = single, false = all
-  const [recurringDialogMode, setRecurringDialogMode] = useState<'edit' | 'delete'>('edit');
+  const [recurringDialogMode, setRecurringDialogMode] = useState<'edit' | 'delete' | 'drag'>(
+    'edit'
+  );
+  const [pendingDragData, setPendingDragData] = useState<{
+    event: Event;
+    targetDate: string;
+  } | null>(null);
 
   const { enqueueSnackbar } = useSnackbar();
 
@@ -221,11 +252,79 @@ function App() {
       }
       setIsRecurringDialogOpen(false);
       setPendingRecurringDelete(null);
+    } else if (recurringDialogMode === 'drag' && pendingDragData) {
+      // 반복 일정 드래그 처리
+      try {
+        await handleRecurringDrag(
+          pendingDragData.event,
+          pendingDragData.targetDate,
+          editSingleOnly
+        );
+        enqueueSnackbar('일정이 이동되었습니다', { variant: 'success' });
+      } catch (error) {
+        console.error(error);
+        enqueueSnackbar('일정 이동 실패', { variant: 'error' });
+      }
+      setIsRecurringDialogOpen(false);
+      setPendingDragData(null);
     }
   };
 
   const isRecurringEvent = (event: Event): boolean => {
     return event.repeat.type !== 'none' && event.repeat.interval > 0;
+  };
+
+  const handleRecurringDrag = async (
+    draggedEvent: Event,
+    targetDate: string,
+    editSingleOnly: boolean
+  ) => {
+    if (editSingleOnly) {
+      // 단일 일정만 이동: 반복 속성 제거하고 새 날짜로 이동
+      await saveEvent(
+        {
+          ...draggedEvent,
+          date: targetDate,
+          repeat: { type: 'none', interval: 0 },
+        },
+        { silent: true }
+      );
+    } else {
+      // 모든 반복 일정 이동: 날짜 차이를 계산하여 모든 일정 이동
+      const originalDate = new Date(draggedEvent.date);
+      const newDate = new Date(targetDate);
+      const dayDiff = Math.floor(
+        (newDate.getTime() - originalDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      // 같은 반복 그룹의 모든 이벤트 찾기
+      const recurringEvents = events.filter(
+        (e) =>
+          e.repeat.type === draggedEvent.repeat.type &&
+          e.repeat.interval === draggedEvent.repeat.interval &&
+          e.repeat.endDate === draggedEvent.repeat.endDate &&
+          e.title === draggedEvent.title &&
+          e.startTime === draggedEvent.startTime &&
+          e.endTime === draggedEvent.endTime
+      );
+
+      // 모든 반복 일정을 같은 간격만큼 이동 (스낵바 표시 없이)
+      for (const event of recurringEvents) {
+        const eventDate = new Date(event.date);
+        eventDate.setDate(eventDate.getDate() + dayDiff);
+        const newDateStr = eventDate.toISOString().split('T')[0];
+
+        await saveEvent(
+          {
+            ...event,
+            date: newDateStr,
+          },
+          { silent: true }
+        );
+      }
+    }
+
+    await fetchEvents();
   };
 
   const handleEditEvent = (event: Event) => {
@@ -258,22 +357,34 @@ function App() {
     if (!over) return;
 
     // active.id = 드래그된 이벤트 ID
-    // over.id = 드롭된 날짜 (ISO string)
+    // over.id = 드롭된 날짜 ("YYYY-MM-DD" 형식)
 
     const draggedEvent = events.find((e) => e.id === active.id);
     if (!draggedEvent) return;
 
-    const newDate = new Date(over.id);
-    const formattedDate = newDate.toISOString().split('T')[0];
+    // over.id는 이미 "YYYY-MM-DD" 형식
+    const formattedDate = over.id;
 
-    // 기존 이벤트 삭제
-    await deleteEvent(draggedEvent.id);
-
-    // 날짜를 변경한 이벤트 등록
-    await saveEvent({
-      ...draggedEvent,
-      date: formattedDate,
-    });
+    // 날짜가 변경된 경우에만 업데이트
+    if (draggedEvent.date !== formattedDate) {
+      // 반복 일정인지 확인
+      if (isRecurringEvent(draggedEvent)) {
+        // 반복 일정이면 모달 표시
+        setPendingDragData({ event: draggedEvent, targetDate: formattedDate });
+        setRecurringDialogMode('drag');
+        setIsRecurringDialogOpen(true);
+      } else {
+        // 일반 일정이면 바로 이동
+        try {
+          await saveEvent({
+            ...draggedEvent,
+            date: formattedDate,
+          });
+        } catch (error) {
+          console.error('드래그 앤 드롭 실패:', error);
+        }
+      }
+    }
   };
 
   const addOrUpdateEvent = async () => {
@@ -369,66 +480,71 @@ function App() {
               </TableHead>
               <TableBody>
                 <TableRow>
-                  {weekDates.map((date) => (
-                    <Droppagble
-                      key={date.toISOString()}
-                      id={date.toISOString()}
-                      sx={{
-                        height: '120px',
-                        verticalAlign: 'top',
-                        width: '14.28%',
-                        padding: 1,
-                        border: '1px solid #e0e0e0',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <Typography variant="body2" fontWeight="bold">
-                        {date.getDate()}
-                      </Typography>
-                      {filteredEvents
-                        .filter(
-                          (event) => new Date(event.date).toDateString() === date.toDateString()
-                        )
-                        .map((event) => {
-                          const isNotified = notifiedEvents.includes(event.id);
-                          const isRepeating = event.repeat.type !== 'none';
+                  {weekDates.map((date) => {
+                    const dateStr = formatDate(date);
+                    return (
+                      <Droppable
+                        key={dateStr}
+                        id={dateStr}
+                        sx={{
+                          height: '120px',
+                          verticalAlign: 'top',
+                          width: '14.28%',
+                          padding: 1,
+                          border: '1px solid #e0e0e0',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <Typography variant="body2" fontWeight="bold">
+                          {date.getDate()}
+                        </Typography>
+                        {filteredEvents
+                          .filter(
+                            (event) => new Date(event.date).toDateString() === date.toDateString()
+                          )
+                          .map((event) => {
+                            const isNotified = notifiedEvents.includes(event.id);
+                            const isRepeating = event.repeat.type !== 'none';
 
-                          return (
-                            <Draggable
-                              id={event.id}
-                              key={event.id}
-                              sx={{
-                                ...eventBoxStyles.common,
-                                ...(isNotified ? eventBoxStyles.notified : eventBoxStyles.normal),
-                              }}
-                            >
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                {isNotified && <Notifications fontSize="small" />}
-                                {/* ! TEST CASE */}
-                                {isRepeating && (
-                                  <Tooltip
-                                    title={`${event.repeat.interval}${getRepeatTypeLabel(
-                                      event.repeat.type
-                                    )}마다 반복${
-                                      event.repeat.endDate ? ` (종료: ${event.repeat.endDate})` : ''
-                                    }`}
+                            return (
+                              <Draggable
+                                id={event.id}
+                                key={event.id}
+                                sx={{
+                                  ...eventBoxStyles.common,
+                                  ...(isNotified ? eventBoxStyles.notified : eventBoxStyles.normal),
+                                }}
+                              >
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  {isNotified && <Notifications fontSize="small" />}
+                                  {/* ! TEST CASE */}
+                                  {isRepeating && (
+                                    <Tooltip
+                                      title={`${event.repeat.interval}${getRepeatTypeLabel(
+                                        event.repeat.type
+                                      )}마다 반복${
+                                        event.repeat.endDate
+                                          ? ` (종료: ${event.repeat.endDate})`
+                                          : ''
+                                      }`}
+                                    >
+                                      <Repeat fontSize="small" />
+                                    </Tooltip>
+                                  )}
+                                  <Typography
+                                    variant="caption"
+                                    noWrap
+                                    sx={{ fontSize: '0.75rem', lineHeight: 1.2 }}
                                   >
-                                    <Repeat fontSize="small" />
-                                  </Tooltip>
-                                )}
-                                <Typography
-                                  variant="caption"
-                                  noWrap
-                                  sx={{ fontSize: '0.75rem', lineHeight: 1.2 }}
-                                >
-                                  {event.title}
-                                </Typography>
-                              </Stack>
-                            </Draggable>
-                          );
-                        })}
-                    </Droppagble>
-                  ))}
+                                    {event.title}
+                                  </Typography>
+                                </Stack>
+                              </Draggable>
+                            );
+                          })}
+                      </Droppable>
+                    );
+                  })}
                 </TableRow>
               </TableBody>
             </Table>
@@ -442,106 +558,119 @@ function App() {
     const weeks = getWeeksAtMonth(currentDate);
 
     return (
-      <Stack data-testid="month-view" spacing={4} sx={{ width: '100%' }}>
-        <Typography variant="h5">{formatMonth(currentDate)}</Typography>
-        <TableContainer>
-          <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
-            <TableHead>
-              <TableRow>
-                {weekDays.map((day) => (
-                  <TableCell key={day} sx={{ width: '14.28%', padding: 1, textAlign: 'center' }}>
-                    {day}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {weeks.map((week, weekIndex) => (
-                <TableRow key={weekIndex}>
-                  {week.map((day, dayIndex) => {
-                    const dateString = day ? formatDate(currentDate, day) : '';
-                    const holiday = holidays[dateString];
-
-                    return (
-                      <TableCell
-                        key={dayIndex}
-                        sx={{
-                          height: '120px',
-                          verticalAlign: 'top',
-                          width: '14.28%',
-                          padding: 1,
-                          border: '1px solid #e0e0e0',
-                          overflow: 'hidden',
-                          position: 'relative',
-                        }}
-                      >
-                        {day && (
-                          <>
-                            <Typography variant="body2" fontWeight="bold">
-                              {day}
-                            </Typography>
-                            {holiday && (
-                              <Typography variant="body2" color="error">
-                                {holiday}
-                              </Typography>
-                            )}
-                            {getEventsForDay(filteredEvents, day).map((event) => {
-                              const isNotified = notifiedEvents.includes(event.id);
-                              const isRepeating = event.repeat.type !== 'none';
-
-                              return (
-                                <Box
-                                  key={event.id}
-                                  sx={{
-                                    p: 0.5,
-                                    my: 0.5,
-                                    backgroundColor: isNotified ? '#ffebee' : '#f5f5f5',
-                                    borderRadius: 1,
-                                    fontWeight: isNotified ? 'bold' : 'normal',
-                                    color: isNotified ? '#d32f2f' : 'inherit',
-                                    minHeight: '18px',
-                                    width: '100%',
-                                    overflow: 'hidden',
-                                  }}
-                                >
-                                  <Stack direction="row" spacing={1} alignItems="center">
-                                    {isNotified && <Notifications fontSize="small" />}
-                                    {/* ! TEST CASE */}
-                                    {isRepeating && (
-                                      <Tooltip
-                                        title={`${event.repeat.interval}${getRepeatTypeLabel(
-                                          event.repeat.type
-                                        )}마다 반복${
-                                          event.repeat.endDate
-                                            ? ` (종료: ${event.repeat.endDate})`
-                                            : ''
-                                        }`}
-                                      >
-                                        <Repeat fontSize="small" />
-                                      </Tooltip>
-                                    )}
-                                    <Typography
-                                      variant="caption"
-                                      noWrap
-                                      sx={{ fontSize: '0.75rem', lineHeight: 1.2 }}
-                                    >
-                                      {event.title}
-                                    </Typography>
-                                  </Stack>
-                                </Box>
-                              );
-                            })}
-                          </>
-                        )}
-                      </TableCell>
-                    );
-                  })}
+      <DndContext onDragEnd={handleDragEnd}>
+        <Stack data-testid="month-view" spacing={4} sx={{ width: '100%' }}>
+          <Typography variant="h5">{formatMonth(currentDate)}</Typography>
+          <TableContainer>
+            <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
+              <TableHead>
+                <TableRow>
+                  {weekDays.map((day) => (
+                    <TableCell key={day} sx={{ width: '14.28%', padding: 1, textAlign: 'center' }}>
+                      {day}
+                    </TableCell>
+                  ))}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Stack>
+              </TableHead>
+              <TableBody>
+                {weeks.map((week, weekIndex) => (
+                  <TableRow key={weekIndex}>
+                    {week.map((day, dayIndex) => {
+                      const dateString = day ? formatDate(currentDate, day) : '';
+                      const holiday = holidays[dateString];
+
+                      // 날짜가 있는 경우 Droppable로, 없는 경우 일반 TableCell로
+                      if (!day) {
+                        return (
+                          <TableCell
+                            key={dayIndex}
+                            sx={{
+                              height: '120px',
+                              verticalAlign: 'top',
+                              width: '14.28%',
+                              padding: 1,
+                              border: '1px solid #e0e0e0',
+                              overflow: 'hidden',
+                              position: 'relative',
+                            }}
+                          />
+                        );
+                      }
+
+                      const dateStr = formatDate(currentDate, day);
+
+                      return (
+                        <Droppable
+                          key={dayIndex}
+                          id={dateStr}
+                          sx={{
+                            height: '120px',
+                            verticalAlign: 'top',
+                            width: '14.28%',
+                            padding: 1,
+                            border: '1px solid #e0e0e0',
+                            overflow: 'hidden',
+                            position: 'relative',
+                          }}
+                        >
+                          <Typography variant="body2" fontWeight="bold">
+                            {day}
+                          </Typography>
+                          {holiday && (
+                            <Typography variant="body2" color="error">
+                              {holiday}
+                            </Typography>
+                          )}
+                          {getEventsForDay(filteredEvents, day).map((event) => {
+                            const isNotified = notifiedEvents.includes(event.id);
+                            const isRepeating = event.repeat.type !== 'none';
+
+                            return (
+                              <Draggable
+                                id={event.id}
+                                key={event.id}
+                                sx={{
+                                  ...eventBoxStyles.common,
+                                  ...(isNotified ? eventBoxStyles.notified : eventBoxStyles.normal),
+                                }}
+                              >
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  {isNotified && <Notifications fontSize="small" />}
+                                  {/* ! TEST CASE */}
+                                  {isRepeating && (
+                                    <Tooltip
+                                      title={`${event.repeat.interval}${getRepeatTypeLabel(
+                                        event.repeat.type
+                                      )}마다 반복${
+                                        event.repeat.endDate
+                                          ? ` (종료: ${event.repeat.endDate})`
+                                          : ''
+                                      }`}
+                                    >
+                                      <Repeat fontSize="small" />
+                                    </Tooltip>
+                                  )}
+                                  <Typography
+                                    variant="caption"
+                                    noWrap
+                                    sx={{ fontSize: '0.75rem', lineHeight: 1.2 }}
+                                  >
+                                    {event.title}
+                                  </Typography>
+                                </Stack>
+                              </Draggable>
+                            );
+                          })}
+                        </Droppable>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Stack>
+      </DndContext>
     );
   };
 
@@ -900,9 +1029,16 @@ function App() {
           setIsRecurringDialogOpen(false);
           setPendingRecurringEdit(null);
           setPendingRecurringDelete(null);
+          setPendingDragData(null);
         }}
         onConfirm={handleRecurringConfirm}
-        event={recurringDialogMode === 'edit' ? pendingRecurringEdit : pendingRecurringDelete}
+        event={
+          recurringDialogMode === 'edit'
+            ? pendingRecurringEdit
+            : recurringDialogMode === 'delete'
+            ? pendingRecurringDelete
+            : pendingDragData?.event || null
+        }
         mode={recurringDialogMode}
       />
 

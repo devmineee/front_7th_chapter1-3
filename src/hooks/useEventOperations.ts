@@ -19,7 +19,7 @@ const SUCCESS_MESSAGES = {
   EVENTS_LOADED: '일정 로딩 완료!',
 } as const;
 
-export const useEventOperations = (editing: boolean, onSave?: () => void) => {
+export const useEventOperations = (onSave?: () => void) => {
   const [events, setEvents] = useState<Event[]>([]);
   const { enqueueSnackbar } = useSnackbar();
 
@@ -37,10 +37,13 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
     }
   };
 
-  const saveEvent = async (eventData: Event | EventForm) => {
+  const saveEvent = async (eventData: Event | EventForm, options?: { silent?: boolean }) => {
     try {
+      // id 존재 여부로 수정/생성 자동 판단
+      const isUpdating = !!(eventData as Event).id;
       let response;
-      if (editing) {
+      
+      if (isUpdating) {
         const editingEvent = {
           ...eventData,
           // ! TEST CASE
@@ -70,12 +73,18 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
 
       await fetchEvents();
       onSave?.();
-      enqueueSnackbar(editing ? SUCCESS_MESSAGES.EVENT_UPDATED : SUCCESS_MESSAGES.EVENT_ADDED, {
-        variant: 'success',
-      });
+      
+      // silent 옵션이 true가 아닐 때만 스낵바 표시
+      if (!options?.silent) {
+        enqueueSnackbar(isUpdating ? SUCCESS_MESSAGES.EVENT_UPDATED : SUCCESS_MESSAGES.EVENT_ADDED, {
+          variant: 'success',
+        });
+      }
     } catch (error) {
       console.error('Error saving event:', error);
-      enqueueSnackbar(ERROR_MESSAGES.SAVE_FAILED, { variant: 'error' });
+      if (!options?.silent) {
+        enqueueSnackbar(ERROR_MESSAGES.SAVE_FAILED, { variant: 'error' });
+      }
     }
   };
 
