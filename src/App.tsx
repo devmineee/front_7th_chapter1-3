@@ -235,6 +235,7 @@ function App() {
   const [pendingDragData, setPendingDragData] = useState<{
     event: Event;
     targetDate: string;
+    isRecurring?: boolean;
   } | null>(null);
 
   const { enqueueSnackbar } = useSnackbar();
@@ -258,19 +259,50 @@ function App() {
       setPendingRecurringDelete(null);
     } else if (recurringDialogMode === 'drag' && pendingDragData) {
       // 반복 일정 드래그 처리
-      try {
-        await handleRecurringDrag(
-          pendingDragData.event,
-          pendingDragData.targetDate,
-          editSingleOnly
-        );
-        enqueueSnackbar('일정이 이동되었습니다', { variant: 'success' });
-      } catch (error) {
-        console.error(error);
-        enqueueSnackbar('일정 이동 실패', { variant: 'error' });
-      }
       setIsRecurringDialogOpen(false);
-      setPendingDragData(null);
+
+      // 겹침 체크를 위해 이동 후 이벤트 생성
+      const { event, targetDate } = pendingDragData;
+
+      if (editSingleOnly) {
+        // 단일 일정만 이동하는 경우 겹침 체크
+        const updatedEvent = {
+          ...event,
+          date: targetDate,
+          repeat: { type: 'none' as const, interval: 0 },
+        };
+
+        const overlapping = findOverlappingEvents(updatedEvent, events);
+        const hasOverlapEvent = overlapping.length > 0;
+
+        if (hasOverlapEvent) {
+          // 겹치는 경우 겹침 모달 표시
+          setOverlappingEvents(overlapping);
+          setPendingDragData({ ...pendingDragData, isRecurring: false });
+          setIsOverlapDialogOpen(true);
+        } else {
+          // 겹치지 않는 경우 바로 이동
+          try {
+            await handleRecurringDrag(event, targetDate, editSingleOnly);
+            enqueueSnackbar('일정이 이동되었습니다', { variant: 'success' });
+          } catch (error) {
+            console.error(error);
+            enqueueSnackbar('일정 이동 실패', { variant: 'error' });
+          }
+          setPendingDragData(null);
+        }
+      } else {
+        // 모든 반복 일정을 이동하는 경우 - 겹침 체크 없이 바로 실행
+        // (모든 반복 일정의 겹침을 체크하는 것은 복잡하므로 생략)
+        try {
+          await handleRecurringDrag(event, targetDate, editSingleOnly);
+          enqueueSnackbar('일정이 이동되었습니다', { variant: 'success' });
+        } catch (error) {
+          console.error(error);
+          enqueueSnackbar('일정 이동 실패', { variant: 'error' });
+        }
+        setPendingDragData(null);
+      }
     }
   };
 
@@ -371,14 +403,28 @@ function App() {
 
     // 날짜가 변경된 경우에만 업데이트
     if (draggedEvent.date !== formattedDate) {
+      // 이동할 날짜에 대한 겹침 체크
+      const updatedEvent = {
+        ...draggedEvent,
+        date: formattedDate,
+      };
+
+      const overlapping = findOverlappingEvents(updatedEvent, events);
+      const hasOverlapEvent = overlapping.length > 0;
+
       // 반복 일정인지 확인
       if (isRecurringEvent(draggedEvent)) {
         // 반복 일정이면 모달 표시
-        setPendingDragData({ event: draggedEvent, targetDate: formattedDate });
+        setPendingDragData({ event: draggedEvent, targetDate: formattedDate, isRecurring: true });
         setRecurringDialogMode('drag');
         setIsRecurringDialogOpen(true);
+      } else if (hasOverlapEvent) {
+        // 일반 일정이면서 겹치는 경우 겹침 모달 표시
+        setOverlappingEvents(overlapping);
+        setPendingDragData({ event: draggedEvent, targetDate: formattedDate, isRecurring: false });
+        setIsOverlapDialogOpen(true);
       } else {
-        // 일반 일정이면 바로 이동
+        // 일반 일정이면서 겹치지 않는 경우 바로 이동
         try {
           await saveEvent({
             ...draggedEvent,
@@ -993,7 +1039,13 @@ function App() {
         </Stack>
       </Stack>
 
-      <Dialog open={isOverlapDialogOpen} onClose={() => setIsOverlapDialogOpen(false)}>
+      <Dialog
+        open={isOverlapDialogOpen}
+        onClose={() => {
+          setIsOverlapDialogOpen(false);
+          setPendingDragData(null);
+        }}
+      >
         <DialogTitle>일정 겹침 경고</DialogTitle>
         <DialogContent>
           <DialogContentText>다음 일정과 겹칩니다:</DialogContentText>
@@ -1005,27 +1057,61 @@ function App() {
           <DialogContentText>계속 진행하시겠습니까?</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsOverlapDialogOpen(false)}>취소</Button>
           <Button
-            color="error"
             onClick={() => {
               setIsOverlapDialogOpen(false);
-              saveEvent({
-                id: editingEvent ? editingEvent.id : undefined,
-                title,
-                date,
-                startTime,
-                endTime,
-                description,
-                location,
-                category,
-                repeat: {
-                  type: isRepeating ? repeatType : 'none',
-                  interval: repeatInterval,
-                  endDate: repeatEndDate || undefined,
-                },
-                notificationTime,
-              });
+              setPendingDragData(null);
+            }}
+          >
+            취소
+          </Button>
+          <Button
+            color="error"
+            onClick={async () => {
+              setIsOverlapDialogOpen(false);
+
+              // 드래그로 인한 겹침인 경우
+              if (pendingDragData) {
+                try {
+                  // 반복 일정에서 "이 일정만" 선택한 경우
+                  if (pendingDragData.isRecurring === false) {
+                    await handleRecurringDrag(
+                      pendingDragData.event,
+                      pendingDragData.targetDate,
+                      true // editSingleOnly = true
+                    );
+                  } else {
+                    // 일반 일정 드래그
+                    await saveEvent({
+                      ...pendingDragData.event,
+                      date: pendingDragData.targetDate,
+                    });
+                  }
+                  enqueueSnackbar('일정이 이동되었습니다', { variant: 'success' });
+                } catch (error) {
+                  console.error('드래그 앤 드롭 실패:', error);
+                  enqueueSnackbar('일정 이동 실패', { variant: 'error' });
+                }
+                setPendingDragData(null);
+              } else {
+                // 일정 추가/수정으로 인한 겹침인 경우
+                saveEvent({
+                  id: editingEvent ? editingEvent.id : undefined,
+                  title,
+                  date,
+                  startTime,
+                  endTime,
+                  description,
+                  location,
+                  category,
+                  repeat: {
+                    type: isRepeating ? repeatType : 'none',
+                    interval: repeatInterval,
+                    endDate: repeatEndDate || undefined,
+                  },
+                  notificationTime,
+                });
+              }
             }}
           >
             계속 진행
