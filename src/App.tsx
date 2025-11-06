@@ -112,9 +112,10 @@ interface DroppableProps {
   id: string;
   children: React.ReactNode;
   sx?: any;
+  onClick?: () => void;
 }
 
-const Droppable: React.FC<DroppableProps> = ({ id, children, sx }) => {
+const Droppable: React.FC<DroppableProps> = ({ id, children, sx, onClick }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: id,
   });
@@ -122,12 +123,14 @@ const Droppable: React.FC<DroppableProps> = ({ id, children, sx }) => {
   return (
     <TableCell
       ref={setNodeRef}
+      onClick={onClick}
       sx={{
         ...sx,
         // 드롭 영역에 드래그 중인 아이템이 올라왔을 때
         backgroundColor: isOver ? '#e3f2fd' : sx?.backgroundColor || 'inherit',
         transition: 'background-color 0.2s ease',
         border: isOver ? '2px dashed #1976d2' : sx?.border || '1px solid #e0e0e0',
+        cursor: 'pointer',
       }}
     >
       {children}
@@ -149,6 +152,7 @@ const Draggable: React.FC<DraggableProps> = ({ id, children, sx }) => {
   return (
     <Box
       ref={setNodeRef}
+      onClick={(e) => e.stopPropagation()}
       sx={{
         ...sx,
         // 드래그 중일 때
@@ -387,6 +391,10 @@ function App() {
     }
   };
 
+  const handleDateCellClick = (dateStr: string) => {
+    setDate(dateStr);
+  };
+
   const addOrUpdateEvent = async () => {
     if (!title || !date || !startTime || !endTime) {
       enqueueSnackbar('필수 정보를 모두 입력해주세요.', { variant: 'error' });
@@ -486,6 +494,7 @@ function App() {
                       <Droppable
                         key={dateStr}
                         id={dateStr}
+                        onClick={() => handleDateCellClick(dateStr)}
                         sx={{
                           height: '120px',
                           verticalAlign: 'top',
@@ -603,6 +612,7 @@ function App() {
                         <Droppable
                           key={dayIndex}
                           id={dateStr}
+                          onClick={() => handleDateCellClick(dateStr)}
                           sx={{
                             height: '120px',
                             verticalAlign: 'top',
