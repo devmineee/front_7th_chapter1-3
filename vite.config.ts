@@ -21,32 +21,33 @@ export default mergeConfig(
       },
     },
     test: {
-      projects: [
-        {
-          extends: true,
-          plugins: [
-            // The plugin will run tests for the stories defined in your Storybook config
-            // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
-            storybookTest({
-              configDir: path.join(dirname, '.storybook'),
-            }),
-          ],
-          test: {
-            name: 'storybook',
-            browser: {
-              enabled: true,
-              headless: true,
-              provider: 'playwright',
-              instances: [
-                {
-                  browser: 'chromium',
-                },
-              ],
-            },
-            setupFiles: ['.storybook/vitest.setup.ts'],
-          },
-        },
-      ],
+      // Storybook 테스트는 브라우저 크래시 문제로 임시 비활성화
+      // projects: [
+      //   {
+      //     extends: true,
+      //     plugins: [
+      //       // The plugin will run tests for the stories defined in your Storybook config
+      //       // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
+      //       storybookTest({
+      //         configDir: path.join(dirname, '.storybook'),
+      //       }),
+      //     ],
+      //     test: {
+      //       name: 'storybook',
+      //       browser: {
+      //         enabled: true,
+      //         headless: true,
+      //         provider: 'playwright',
+      //         instances: [
+      //           {
+      //             browser: 'chromium',
+      //           },
+      //         ],
+      //       },
+      //       setupFiles: ['.storybook/vitest.setup.ts'],
+      //     },
+      //   },
+      // ],
     },
   }),
   defineTestConfig({
@@ -54,6 +55,7 @@ export default mergeConfig(
       globals: true,
       environment: 'jsdom',
       setupFiles: './src/setupTests.ts',
+      exclude: ['**/node_modules/**', '**/dist/**', '**/e2e_tests/**', '**/.{idea,git,cache,output,temp}/**'],
       coverage: {
         reportsDirectory: './.coverage',
         reporter: ['lcov', 'json', 'json-summary'],

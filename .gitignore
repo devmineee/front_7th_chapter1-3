@@ -10,3 +10,7 @@ node_modules
 /.allure/
 *storybook.log
 storybook-static
+
+# Playwright
+/blob-report/
+/playwright/.auth/
