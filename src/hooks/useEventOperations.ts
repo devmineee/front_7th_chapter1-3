@@ -42,7 +42,7 @@ export const useEventOperations = (onSave?: () => void) => {
       // id 존재 여부로 수정/생성 자동 판단
       const isUpdating = !!(eventData as Event).id;
       let response;
-      
+
       if (isUpdating) {
         const editingEvent = {
           ...eventData,
@@ -73,12 +73,15 @@ export const useEventOperations = (onSave?: () => void) => {
 
       await fetchEvents();
       onSave?.();
-      
+
       // silent 옵션이 true가 아닐 때만 스낵바 표시
       if (!options?.silent) {
-        enqueueSnackbar(isUpdating ? SUCCESS_MESSAGES.EVENT_UPDATED : SUCCESS_MESSAGES.EVENT_ADDED, {
-          variant: 'success',
-        });
+        enqueueSnackbar(
+          isUpdating ? SUCCESS_MESSAGES.EVENT_UPDATED : SUCCESS_MESSAGES.EVENT_ADDED,
+          {
+            variant: 'success',
+          }
+        );
       }
     } catch (error) {
       console.error('Error saving event:', error);

@@ -1,3 +1,4 @@
+import { DndContext, DragEndEvent, useDraggable, useDroppable } from '@dnd-kit/core';
 import {
   ChevronLeft,
   ChevronRight,
@@ -36,9 +37,8 @@ import {
   Typography,
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
+import React from 'react';
 import { useState } from 'react';
-
-import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
 
 import RecurringEventDialog from './components/RecurringEventDialog.tsx';
 import { useCalendarView } from './hooks/useCalendarView.ts';
@@ -111,7 +111,7 @@ const getRepeatTypeLabel = (type: RepeatType): string => {
 interface DroppableProps {
   id: string;
   children: React.ReactNode;
-  sx?: any;
+  sx?: Record<string, unknown>;
   onClick?: () => void;
 }
 
@@ -141,7 +141,7 @@ const Droppable: React.FC<DroppableProps> = ({ id, children, sx, onClick }) => {
 interface DraggableProps {
   id: string;
   children: React.ReactNode;
-  sx?: any;
+  sx?: Record<string, unknown>;
 }
 
 const Draggable: React.FC<DraggableProps> = ({ id, children, sx }) => {
@@ -387,7 +387,7 @@ function App() {
     }
   };
 
-  const handleDragEnd = async (event: any) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (!over) return;
@@ -1132,8 +1132,8 @@ function App() {
           recurringDialogMode === 'edit'
             ? pendingRecurringEdit
             : recurringDialogMode === 'delete'
-            ? pendingRecurringDelete
-            : pendingDragData?.event || null
+              ? pendingRecurringDelete
+              : pendingDragData?.event || null
         }
         mode={recurringDialogMode}
       />

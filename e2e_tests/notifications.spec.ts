@@ -33,7 +33,7 @@ const createEvent = async (page: Page, params: CreateEventParams) => {
   // 알림 설정
   if (params.notificationTime !== undefined) {
     await page.locator('#notification').click();
-    
+
     // notificationTime에 따라 적절한 옵션 선택
     const notificationLabels: { [key: number]: string } = {
       1: '1분 전',
@@ -42,7 +42,7 @@ const createEvent = async (page: Page, params: CreateEventParams) => {
       120: '2시간 전',
       1440: '1일 전',
     };
-    
+
     const label = notificationLabels[params.notificationTime];
     if (label) {
       await page.getByRole('option', { name: label }).click();
@@ -64,23 +64,14 @@ const createEvent = async (page: Page, params: CreateEventParams) => {
   }
 };
 
-// 현재 시간으로부터 특정 분 후의 시간을 "HH:MM" 형식으로 반환
-const getTimeAfterMinutes = (minutes: number): string => {
-  const date = new Date();
-  date.setMinutes(date.getMinutes() + minutes);
-  const hours = date.getHours().toString().padStart(2, '0');
-  const mins = date.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${mins}`;
-};
-
-// 오늘 날짜를 "YYYY-MM-DD" 형식으로 반환
-const getTodayDate = (): string => {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+// 오늘 날짜를 "YYYY-MM-DD" 형식으로 반환 (현재 사용하지 않음)
+// const getTodayDate = (): string => {
+//   const date = new Date();
+//   const year = date.getFullYear();
+//   const month = (date.getMonth() + 1).toString().padStart(2, '0');
+//   const day = date.getDate().toString().padStart(2, '0');
+//   return `${year}-${month}-${day}`;
+// };
 
 test.describe('알림 시스템 테스트', () => {
   test.beforeEach(async ({ page }) => {
@@ -186,7 +177,7 @@ test.describe('알림 시스템 테스트', () => {
 
   test('알림 시간 옵션이 올바르게 표시된다', async ({ page }) => {
     await page.locator('#notification').click();
-    
+
     // 모든 알림 옵션이 표시되는지 확인
     await expect(page.getByRole('option', { name: '1분 전' })).toBeVisible();
     await expect(page.getByRole('option', { name: '10분 전' })).toBeVisible();
@@ -217,11 +208,11 @@ test.describe('알림 시스템 테스트', () => {
     });
 
     const eventList = page.getByTestId('event-list');
-    
+
     const eventCardA = eventList.locator('div').filter({ hasText: '일정 A' }).first();
     await expect(eventCardA).toBeVisible({ timeout: 5000 });
     await expect(eventCardA).toContainText('알림: 1분 전');
-    
+
     const eventCardB = eventList.locator('div').filter({ hasText: '일정 B' }).first();
     await expect(eventCardB).toBeVisible({ timeout: 5000 });
     await expect(eventCardB).toContainText('알림: 1시간 전');
@@ -243,10 +234,10 @@ test.describe('알림 시스템 테스트', () => {
 
     // 수정
     await eventCard.getByLabel('Edit event').click({ force: true });
-    
+
     await page.locator('#notification').click();
     await page.getByRole('option', { name: '1시간 전' }).click();
-    
+
     await page.getByTestId('event-submit-button').click();
 
     // 수정 확인
@@ -270,7 +261,7 @@ test.describe('알림 시스템 테스트', () => {
     const eventList = page.getByTestId('event-list');
     const eventCard = eventList.locator('div').filter({ hasText: '아이콘 테스트' }).first();
     await expect(eventCard).toBeVisible();
-    
+
     // 알림 시간 텍스트 확인
     await expect(eventCard).toContainText('알림: 1분 전');
   });
@@ -309,11 +300,10 @@ test.describe('알림 시스템 테스트', () => {
     const monthView = page.getByTestId('month-view');
     const eventBox = monthView.locator('div').filter({ hasText: '캘린더 알림' }).first();
     await expect(eventBox).toBeVisible();
-    
+
     // 이벤트 리스트에서 알림 정보 확인
     const eventList = page.getByTestId('event-list');
     const eventCard = eventList.locator('div').filter({ hasText: '캘린더 알림' }).first();
     await expect(eventCard).toContainText('알림: 1시간 전');
   });
 });
-

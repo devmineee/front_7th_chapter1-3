@@ -171,7 +171,7 @@ test.describe('검색 및 필터링 테스트', () => {
     });
 
     const eventList = page.getByTestId('event-list');
-    
+
     // 모든 일정이 추가되었는지 확인
     await expect(eventList.getByText('회의 A').first()).toBeVisible({ timeout: 5000 });
     await expect(eventList.getByText('회의 B').first()).toBeVisible({ timeout: 5000 });
@@ -257,7 +257,7 @@ test.describe('검색 및 필터링 테스트', () => {
 
     // 11월 뷰에서 검색
     await page.getByLabel('일정 검색').fill('회의');
-    
+
     // 11월 일정만 표시되어야 함
     const eventCount = await eventList.getByText(/회의/).count();
     expect(eventCount).toBeGreaterThan(0);
@@ -280,14 +280,14 @@ test.describe('검색 및 필터링 테스트', () => {
     });
 
     const eventList = page.getByTestId('event-list');
-    
+
     // 일정이 추가되었는지 먼저 확인
     await expect(eventList.getByText('주간 일정').first()).toBeVisible({ timeout: 5000 });
 
     // 주간 뷰로 전환
     await page.getByLabel('뷰 타입 선택').click();
     await page.getByRole('option', { name: 'week-option' }).click();
-    
+
     // 뷰 전환 대기
     await expect(page.getByTestId('week-view')).toBeVisible({ timeout: 3000 });
 
@@ -355,7 +355,7 @@ test.describe('검색 및 필터링 테스트', () => {
     });
 
     const eventList = page.getByTestId('event-list');
-    
+
     // 모든 일정이 추가되었는지 확인
     await expect(eventList.getByText('팀 회의').first()).toBeVisible({ timeout: 5000 });
     await expect(eventList.getByText('개인 미팅').first()).toBeVisible({ timeout: 5000 });
@@ -363,7 +363,7 @@ test.describe('검색 및 필터링 테스트', () => {
 
     // '팀'으로 검색
     await page.getByLabel('일정 검색').fill('팀');
-    
+
     // 검색이 적용될 때까지 잠시 대기
     await page.waitForTimeout(500);
 
@@ -372,8 +372,4 @@ test.describe('검색 및 필터링 테스트', () => {
     await expect(eventList.getByText('팀 워크샵').first()).toBeVisible();
     await expect(eventList.getByText('개인 미팅')).toHaveCount(0);
   });
-
-
- 
 });
-

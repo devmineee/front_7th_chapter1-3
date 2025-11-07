@@ -36,7 +36,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
         // macOS Sequoia에서 headless 모드 크래시 문제 해결
         headless: false, // webkit 크래시 문제로 chromium + non-headless 사용
@@ -51,7 +51,7 @@ export default defineConfig({
 
     // {
     //   name: 'webkit',
-    //   use: { 
+    //   use: {
     //     ...devices['Desktop Safari'],
     //     // macOS Sequoia에서 webkit 크래시 문제 발생
     //   },

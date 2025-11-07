@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Notifications, Repeat } from '@mui/icons-material';
 import {
   Box,
   TableContainer,
@@ -10,8 +10,9 @@ import {
   Typography,
   Stack,
 } from '@mui/material';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import { Event } from '../types';
-import { Notifications, Repeat } from '@mui/icons-material';
 
 // 캘린더 뷰를 시각적으로 테스트하기 위한 컴포넌트
 interface CalendarViewProps {

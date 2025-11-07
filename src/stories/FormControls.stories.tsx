@@ -1,6 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
 import {
-  Box,
   FormControl,
   FormLabel,
   TextField,
@@ -12,15 +10,14 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
 
 // 4. 폼 컨트롤 상태
 const FormControlsComponent = () => {
   const [startTime, setStartTime] = useState('10:00');
   const [endTime, setEndTime] = useState('09:00');
-  const [startTimeError, setStartTimeError] = useState(
-    '종료 시간은 시작 시간보다 이후여야 합니다.'
-  );
+  const startTimeError = '종료 시간은 시작 시간보다 이후여야 합니다.';
 
   return (
     <Stack spacing={2} sx={{ width: '400px', p: 2 }}>

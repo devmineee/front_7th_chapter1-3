@@ -275,13 +275,17 @@ test.describe('일정 겹침 검증 테스트', () => {
     await page.waitForTimeout(500);
 
     // 두 번째 일정 추가
-    await createEvent(page, {
-      title: '일정 2',
-      date: '2025-11-25',
-      startTime: '13:30',
-      endTime: '14:30',
-      category: '업무',
-    }, true);
+    await createEvent(
+      page,
+      {
+        title: '일정 2',
+        date: '2025-11-25',
+        startTime: '13:30',
+        endTime: '14:30',
+        category: '업무',
+      },
+      true
+    );
 
     const eventList = page.getByTestId('event-list');
     await expect(eventList.getByText('일정 1').first()).toBeVisible({ timeout: 5000 });
@@ -342,4 +346,3 @@ test.describe('일정 겹침 검증 테스트', () => {
     await expect(page.getByText('일정 겹침 경고')).toBeVisible({ timeout: 5000 });
   });
 });
-

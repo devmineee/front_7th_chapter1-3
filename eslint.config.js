@@ -12,7 +12,15 @@ import globals from 'globals';
 
 export default [
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '.storybook/**', '**/playwright-report/**'],
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '.storybook/**',
+      '**/playwright-report/**',
+      '**/storybook-static/**',
+      '**/.coverage/**',
+      '**/test-results/**',
+    ],
   },
   // Base configuration for all files
   {

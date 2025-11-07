@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import { Notifications, Repeat } from '@mui/icons-material';
 import {
   Box,
   Stack,
@@ -10,7 +10,7 @@ import {
   TableRow,
   TableCell,
 } from '@mui/material';
-import { Notifications, Repeat } from '@mui/icons-material';
+import type { Meta, StoryObj } from '@storybook/react';
 
 // 5. 각 셀 텍스트 길이에 따른 처리
 const TextLengthComponent = () => {

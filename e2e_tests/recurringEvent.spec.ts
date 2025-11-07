@@ -183,7 +183,7 @@ test.describe('반복 일정 CRUD 테스트', () => {
     try {
       const recurringDialog = page.getByRole('dialog');
       await expect(recurringDialog).toBeVisible({ timeout: 3000 });
-      
+
       // "예" 버튼 클릭 (이 일정만 수정)
       await page.getByRole('button', { name: '예' }).click();
       await page.waitForTimeout(500);
@@ -203,6 +203,7 @@ test.describe('반복 일정 CRUD 테스트', () => {
       if (isVisible) {
         await page.getByRole('button', { name: '계속 진행' }).click();
       }
+      // eslint-disable-next-line no-empty
     } catch {}
 
     await expect(eventList.getByText('매일 독서 (수정됨)').first()).toBeVisible({ timeout: 5000 });
@@ -231,7 +232,7 @@ test.describe('반복 일정 CRUD 테스트', () => {
     try {
       const recurringDialog = page.getByRole('dialog');
       await expect(recurringDialog).toBeVisible({ timeout: 3000 });
-      
+
       // "아니오" 버튼 클릭 (모든 반복 일정 수정)
       await page.getByRole('button', { name: '아니오' }).click();
       await page.waitForTimeout(500);
@@ -251,9 +252,12 @@ test.describe('반복 일정 CRUD 테스트', () => {
       if (isVisible) {
         await page.getByRole('button', { name: '계속 진행' }).click();
       }
+      // eslint-disable-next-line no-empty
     } catch {}
 
-    await expect(eventList.getByText('매주 수영 (전체 수정)').first()).toBeVisible({ timeout: 5000 });
+    await expect(eventList.getByText('매주 수영 (전체 수정)').first()).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test('반복 일정을 삭제할 때 "이 일정만" 옵션을 선택할 수 있다', async ({ page }) => {
@@ -281,7 +285,7 @@ test.describe('반복 일정 CRUD 테스트', () => {
     try {
       const recurringDialog = page.getByRole('dialog');
       await expect(recurringDialog).toBeVisible({ timeout: 3000 });
-      
+
       // "예" 버튼 클릭 (이 일정만 삭제)
       await page.getByRole('button', { name: '예' }).click();
       await page.waitForTimeout(500);
@@ -318,7 +322,7 @@ test.describe('반복 일정 CRUD 테스트', () => {
     try {
       const recurringDialog = page.getByRole('dialog');
       await expect(recurringDialog).toBeVisible({ timeout: 3000 });
-      
+
       // "아니오" 버튼 클릭 (모든 반복 일정 삭제)
       await page.getByRole('button', { name: '아니오' }).click();
       await page.waitForTimeout(500);
@@ -370,4 +374,3 @@ test.describe('반복 일정 CRUD 테스트', () => {
     await expect(eventCard).toContainText('종료: 2025-12-05');
   });
 });
-

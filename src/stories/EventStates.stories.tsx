@@ -1,6 +1,7 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Box, Stack, Typography, Tooltip } from '@mui/material';
 import { Notifications, Repeat } from '@mui/icons-material';
+import { Box, Stack, Typography, Tooltip } from '@mui/material';
+import type { Meta, StoryObj } from '@storybook/react';
+
 import { Event } from '../types';
 
 // 일정 상태별 시각적 표현을 테스트하기 위한 컴포넌트

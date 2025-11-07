@@ -1,4 +1,3 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
   Dialog,
   DialogTitle,
@@ -8,6 +7,8 @@ import {
   Button,
   Typography,
 } from '@mui/material';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import RecurringEventDialog from '../components/RecurringEventDialog';
 import { Event } from '../types';
 
