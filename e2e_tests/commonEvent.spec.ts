@@ -70,16 +70,18 @@ test.describe('기본 일정 관리 CRUD 테스트', () => {
 
   test('일정을 추가할 수 있다 (CREATE)', async ({ page }) => {
     await createEvent(page, {
-      title: '퇴사 파티',
+      title: '프로젝트 킥오프 미팅',
       date: '2025-11-25',
       startTime: '10:00',
       endTime: '11:00',
-      description: '드디어 퇴사',
-      location: '강남역',
+      description: '신규 프로젝트 시작 회의',
+      location: '본사 3층 대회의실',
       category: '개인',
     });
 
-    await expect(page.getByTestId('event-list').getByText('퇴사 파티').first()).toBeVisible();
+    await expect(
+      page.getByTestId('event-list').getByText('프로젝트 킥오프 미팅').first()
+    ).toBeVisible();
 
     await expect(page.getByLabel('제목')).toHaveValue('');
 
@@ -92,32 +94,32 @@ test.describe('기본 일정 관리 CRUD 테스트', () => {
 
   test('추가된 일정을 조회할 수 있다 (READ)', async ({ page }) => {
     await createEvent(page, {
-      title: '팀 회의',
+      title: '클라이언트 프레젠테이션',
       date: '2025-11-25',
       startTime: '10:00',
       endTime: '11:00',
-      description: '주간 팀 회의',
-      location: '회의실 A',
+      description: '2분기 사업 계획 발표',
+      location: '여의도 클라이언트 사무실',
       category: '업무',
     });
 
     const eventList = page.getByTestId('event-list');
-    await expect(eventList.getByText('팀 회의').first()).toBeVisible();
+    await expect(eventList.getByText('클라이언트 프레젠테이션').first()).toBeVisible();
   });
 
   test('일정을 수정할 수 있다 (UPDATE)', async ({ page }) => {
     await createEvent(page, {
-      title: '점심 약속',
+      title: '치과 예약',
       date: '2025-11-25',
       startTime: '12:00',
       endTime: '13:00',
-      description: '동료와 점심',
-      location: '회사 근처',
+      description: '스케일링 및 검진',
+      location: '서울대학교 치과병원',
       category: '개인',
     });
 
     const eventList = page.getByTestId('event-list');
-    await expect(eventList.getByText('점심 약속').first()).toBeVisible();
+    await expect(eventList.getByText('치과 예약').first()).toBeVisible();
 
     try {
       const dialogTitle = page.getByText('일정 겹침 경고');
@@ -130,7 +132,7 @@ test.describe('기본 일정 관리 CRUD 테스트', () => {
       // Dialog가 없으면 무시
     }
 
-    const eventCards = eventList.locator('div').filter({ hasText: '점심 약속' });
+    const eventCards = eventList.locator('div').filter({ hasText: '치과 예약' });
     await eventCards.first().getByLabel('Edit event').click({ force: true });
 
     try {
@@ -148,8 +150,8 @@ test.describe('기본 일정 관리 CRUD 테스트', () => {
     }
 
     await expect(page.getByLabel('제목')).not.toHaveValue('');
-    await expect(page.getByLabel('제목')).toHaveValue('점심 약속');
-    await page.getByLabel('제목').fill('저녁 약속');
+    await expect(page.getByLabel('제목')).toHaveValue('치과 예약');
+    await page.getByLabel('제목').fill('안과 검진');
     await page.getByTestId('event-submit-button').click();
 
     // 편집 다이얼로그가 닫힐 때까지 대기
@@ -162,30 +164,30 @@ test.describe('기본 일정 관리 CRUD 테스트', () => {
 
     // 수정된 이벤트가 리스트에 나타날 때까지 재시도
     await expect(async () => {
-      const isVisible = await eventList.getByText('저녁 약속').first().isVisible();
+      const isVisible = await eventList.getByText('안과 검진').first().isVisible();
       expect(isVisible).toBe(true);
     }).toPass({ timeout: 10000 });
 
     // 기존 이벤트가 사라질 때까지 재시도
     await expect(async () => {
-      const count = await eventList.getByText('점심 약속').count();
+      const count = await eventList.getByText('치과 예약').count();
       expect(count).toBe(0);
     }).toPass({ timeout: 5000 });
   });
 
   test('일정을 삭제할 수 있다 (DELETE)', async ({ page }) => {
     await createEvent(page, {
-      title: '운동',
+      title: '영어 회화 수업',
       date: '2025-11-25',
       startTime: '18:00',
       endTime: '19:00',
-      description: '헬스장',
-      location: '동네 헬스장',
+      description: '비즈니스 영어 과정',
+      location: '강남 어학원 5층',
       category: '개인',
     });
 
     const eventList = page.getByTestId('event-list');
-    await expect(eventList.getByText('운동').first()).toBeVisible();
+    await expect(eventList.getByText('영어 회화 수업').first()).toBeVisible();
 
     try {
       const dialogTitle = page.getByText('일정 겹침 경고');
@@ -198,7 +200,7 @@ test.describe('기본 일정 관리 CRUD 테스트', () => {
       // Dialog가 없으면 무시
     }
 
-    const eventCards = eventList.locator('div').filter({ hasText: '운동' });
+    const eventCards = eventList.locator('div').filter({ hasText: '영어 회화 수업' });
     const deleteButton = eventCards.first().getByLabel('Delete event');
     await expect(deleteButton).toBeVisible();
     await deleteButton.click({ force: true });
@@ -217,7 +219,7 @@ test.describe('기본 일정 관리 CRUD 테스트', () => {
       // Dialog가 없으면 무시
     }
 
-    await expect(eventList.getByText('운동')).toHaveCount(0, { timeout: 10000 });
+    await expect(eventList.getByText('영어 회화 수업')).toHaveCount(0, { timeout: 10000 });
 
     try {
       await expect(page.getByText('검색 결과가 없습니다.')).toBeVisible({ timeout: 2000 });
