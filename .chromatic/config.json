@@ -1,0 +1,9 @@
+{
+  "projectId": "YOUR_PROJECT_ID",
+  "buildScriptName": "build-storybook",
+  "storybookBuildDir": "storybook-static",
+  "exitZeroOnChanges": true,
+  "exitOnceUploaded": true,
+  "autoAcceptChanges": "main",
+  "ignoreLastBuildOnBranch": "renovate/**"
+}
