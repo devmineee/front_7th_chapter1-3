@@ -30,7 +30,6 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
-    headless: true,
   },
 
   /* Configure projects for major browsers */
@@ -40,7 +39,8 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         // macOS Sequoia에서 headless 모드 크래시 문제 해결
-        headless: false, // webkit 크래시 문제로 chromium + non-headless 사용
+        // CI 환경에서는 headless 모드 사용
+        headless: !!process.env.CI,
       },
     },
 
