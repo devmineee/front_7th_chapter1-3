@@ -399,7 +399,7 @@ function App() {
     if (!draggedEvent) return;
 
     // over.id는 이미 "YYYY-MM-DD" 형식
-    const formattedDate = over.id;
+    const formattedDate = String(over.id);
 
     // 날짜가 변경된 경우에만 업데이트
     if (draggedEvent.date !== formattedDate) {
@@ -1132,8 +1132,8 @@ function App() {
           recurringDialogMode === 'edit'
             ? pendingRecurringEdit
             : recurringDialogMode === 'delete'
-              ? pendingRecurringDelete
-              : pendingDragData?.event || null
+            ? pendingRecurringDelete
+            : pendingDragData?.event || null
         }
         mode={recurringDialogMode}
       />

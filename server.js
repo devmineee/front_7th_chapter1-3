@@ -191,6 +191,14 @@ app.delete('/api/recurring-events/:repeatId', async (req, res) => {
   res.status(204).send();
 });
 
+// 정적 파일 제공 (빌드된 dist 폴더)
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// SPA fallback: 모든 경로를 index.html로
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 app.listen(port, () => {
   if (!fs.existsSync(`${__dirname}/src/__mocks__/response/${dbName}`)) {
     fs.writeFileSync(

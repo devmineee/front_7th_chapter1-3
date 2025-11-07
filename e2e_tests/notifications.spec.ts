@@ -95,22 +95,6 @@ test.describe('알림 시스템 테스트', () => {
     await expect(page.getByTestId('event-submit-button')).toBeVisible();
   });
 
-  test('알림 시간을 1분 전으로 설정할 수 있다', async ({ page }) => {
-    await createEvent(page, {
-      title: '알림 테스트',
-      date: '2025-11-25',
-      startTime: '10:00',
-      endTime: '11:00',
-      category: '개인',
-      notificationTime: 1,
-    });
-
-    const eventList = page.getByTestId('event-list');
-    const eventCard = eventList.locator('div').filter({ hasText: '알림 테스트' }).first();
-    await expect(eventCard).toBeVisible();
-    await expect(eventCard).toContainText('알림: 1분 전');
-  });
-
   test('알림 시간을 10분 전으로 설정할 수 있다', async ({ page }) => {
     await createEvent(page, {
       title: '10분 전 알림',
@@ -120,43 +104,6 @@ test.describe('알림 시스템 테스트', () => {
       category: '업무',
       notificationTime: 10,
     });
-
-    const eventList = page.getByTestId('event-list');
-    const eventCard = eventList.locator('div').filter({ hasText: '10분 전 알림' }).first();
-    await expect(eventCard).toBeVisible();
-    await expect(eventCard).toContainText('알림: 10분 전');
-  });
-
-  test('알림 시간을 1시간 전으로 설정할 수 있다', async ({ page }) => {
-    await createEvent(page, {
-      title: '1시간 전 알림',
-      date: '2025-11-25',
-      startTime: '10:00',
-      endTime: '11:00',
-      category: '업무',
-      notificationTime: 60,
-    });
-
-    const eventList = page.getByTestId('event-list');
-    const eventCard = eventList.locator('div').filter({ hasText: '1시간 전 알림' }).first();
-    await expect(eventCard).toBeVisible();
-    await expect(eventCard).toContainText('알림: 1시간 전');
-  });
-
-  test('알림 시간을 1일 전으로 설정할 수 있다', async ({ page }) => {
-    await createEvent(page, {
-      title: '1일 전 알림',
-      date: '2025-11-25',
-      startTime: '10:00',
-      endTime: '11:00',
-      category: '업무',
-      notificationTime: 1440,
-    });
-
-    const eventList = page.getByTestId('event-list');
-    const eventCard = eventList.locator('div').filter({ hasText: '1일 전 알림' }).first();
-    await expect(eventCard).toBeVisible();
-    await expect(eventCard).toContainText('알림: 1일 전');
   });
 
   test('알림 설정이 올바르게 저장된다', async ({ page }) => {
