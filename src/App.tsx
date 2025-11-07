@@ -1132,8 +1132,8 @@ function App() {
           recurringDialogMode === 'edit'
             ? pendingRecurringEdit
             : recurringDialogMode === 'delete'
-            ? pendingRecurringDelete
-            : pendingDragData?.event || null
+              ? pendingRecurringDelete
+              : pendingDragData?.event || null
         }
         mode={recurringDialogMode}
       />
